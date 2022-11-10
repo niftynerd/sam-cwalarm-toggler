@@ -1,0 +1,78 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  sam-cwalarm-toggle
+
+  Sample SAM Template for sam-cwalarm-toggle
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+
+Parameters:
+  ListOfAlarms:
+    Type: String
+    Default: '"alarm1", "alarm2", "alarm3"'
+    Description: Names of cloudwatch alarms to toggle
+
+  DisableSchedule:
+    Type: String
+    Default: 'cron(0 2 1 * ? *)'
+    Description: Schedule expression for disabling alarms
+
+  EnableSchedule:
+    Type: String
+    Default: 'cron(0 5 1 * ? *)'
+    Description: Schedule expression for enabling alarms
+
+Resources:
+  ToggleAlarmsFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: toggle_alarms/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Architectures:
+        - x86_64
+      Policies:
+        - AWSLambdaExecute
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - cloudwatch:EnableAlarmActions
+                - cloudwatch:DisableAlarmActions
+              Resource: '*'
+      Events:
+        DisableAlarms:
+          Type: Schedule # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Description: Disable list of alarms
+            Schedule: !Ref DisableSchedule
+            Input: !Sub |
+              {
+                "enable": false,
+                "alarm": [${ListOfAlarms}]
+              }
+        EnableAlarms:
+          Type: Schedule
+          Properties:
+            Description: Enable list of alarms
+            Schedule: !Ref EnableSchedule
+            Input: !Sub |
+              {
+                "enable": true,
+                "alarm": [${ListOfAlarms}]
+              }
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  ToggleAlarmsFunction:
+    Description: "Toggle Alarms Lambda Function ARN"
+    Value: !GetAtt ToggleAlarmsFunction.Arn
+  ToggleAlarmsFunctionIamRole:
+    Description: "Implicit IAM Role created for Toggle Alarms function"
+    Value: !GetAtt ToggleAlarmsFunctionRole.Arn

@@ -1,0 +1,4 @@
+{
+  "enable": false,
+  "alarm": ["alarm1", "alarm2", "alarm3"]
+}
